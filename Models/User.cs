@@ -1,8 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
 namespace WebApplication3.Models
-{ 
-
+{
     public class User
     {
         [Key]
@@ -10,13 +9,10 @@ namespace WebApplication3.Models
 
         [Required]
         public string Username { get; set; }
-
         [Required]
         public string Password { get; set; }
 
         [Required]
         public string Email { get; set; }
-
     }
-
 }

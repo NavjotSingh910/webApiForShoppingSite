@@ -9,7 +9,5 @@ namespace WebApplication3.Dto
 
             [Required]
             public string Password { get; set; }
-
-      
     }
 }
