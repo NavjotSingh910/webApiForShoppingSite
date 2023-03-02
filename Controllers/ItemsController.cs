@@ -11,45 +11,31 @@ namespace WebApplication3.Controllers
 
     public class ItemsController : Controller
     {
-
         private readonly UserContext _context;
-        private readonly IConfiguration _configuration;
-
-        public ItemsController(UserContext context, IConfiguration configuration)
+        public ItemsController(UserContext context)
         {
             _context = context;
-            _configuration = configuration;
         }
 
-
-
         [HttpGet("ItemsGet")]
-
         public async Task<ActionResult<IEnumerable<Items>>> GetProducts()
         {
             var products = await _context.Items.ToListAsync();
             return products;
         }
 
-
-
-
         [HttpPost("ItemAdd")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Items([FromBody] Items items)
         {
-
             _context.Items.Add(items);
             await _context.SaveChangesAsync();
 
             return Ok(items);
         }
 
-
-
         [BindProperty]
-
-        public Items item { get; set; }
+        public Items Item { get; set; }
         [HttpGet("ItemById")]
         public async Task<IActionResult> OnGetAsync(int? id)
         {
@@ -66,27 +52,25 @@ namespace WebApplication3.Controllers
             }
             else
             {
-                item = contact;
+                Item = contact;
             }
-            return Ok(item);
+            return Ok(Item);
         }
-
 
         [HttpPost("ItemDelete")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ItemDelete([FromBody] int id)
+        public async Task<IActionResult> ItemDelete([FromBody] int Id)
         {
-
-            if (id == null || _context.Items == null)
+            if (Id == 0 || _context.Items == null)
             {
                 return NotFound();
             }
-            var itemFind = await _context.Items.FindAsync(id);
+            var itemFind = await _context.Items.FindAsync(Id);
 
             if (itemFind != null)
             {
-                item = itemFind;
-                _context.Items.Remove(item);
+                Item = itemFind;
+                _context.Items.Remove(Item);
                 await _context.SaveChangesAsync();
             }
             var products = await _context.Items.ToListAsync();
@@ -110,6 +94,5 @@ namespace WebApplication3.Controllers
                 return products;
             }
         }
-
     }
 }

@@ -1,6 +1,4 @@
-﻿
-
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -46,27 +44,24 @@ namespace WebApplication3.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(user);
-        } 
+        }
 
         [HttpPost("login")]
         public IActionResult Login([FromBody] UserLoginDTO user)
         {
             var existingUser = _context.Users.SingleOrDefault(u => u.Username == user.Username && u.Password == user.Password);
-            
             if (existingUser == null)
             {
                 return BadRequest("Invalid username or password");
             }
-
             // Generate JWT token
             string token = CreateToken(existingUser);
             return Ok(token);
-
-
         }
         private string CreateToken(User user)
         {
-            List<Claim> claims = new List<Claim>
+            // List<Claim> claims = new List<Claim>
+            List<Claim> claims = new()
             {
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, "Admin")
@@ -85,13 +80,6 @@ namespace WebApplication3.Controllers
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
             return jwt;
-        }
-
-        [HttpGet("test")]
-        [Authorize (Roles ="Admin")]
-        public IActionResult Test()
-        {
-            return Ok("Authorized");
         }
     }
 }

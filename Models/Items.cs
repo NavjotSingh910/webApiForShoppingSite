@@ -10,6 +10,5 @@ namespace WebApplication3.Models
         public decimal Rating { get; set; }
         public decimal Price { get; set; }
         public string imageSource { get; set; }=    string.Empty;
-
     }
 }
