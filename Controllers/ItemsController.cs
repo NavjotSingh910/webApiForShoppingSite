@@ -94,5 +94,32 @@ namespace WebApplication3.Controllers
                 return products;
             }
         }
+
+        [HttpGet("load")]
+        public IActionResult GetItems(int startIndex, int count)
+        {
+            // startIndex is the index of the first item to return
+            // count is the number of items to return
+
+            // Load items from database or some other data source
+            var items = LoadItemsFromDataSource(startIndex, count);
+
+            // Return the items as JSON data
+            return Json(items);
+        }
+
+        private List<Items> LoadItemsFromDataSource(int startIndex, int count)
+        {
+
+            var items = _context.Items
+                .OrderBy(x => x.Id)
+                .Skip(startIndex)//here skip the items 
+                .Take(count)//take the items from after skiping indexs
+                .ToList();
+
+            return items;
+
+        }
+
     }
 }

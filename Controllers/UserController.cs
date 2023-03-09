@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Net.Mail;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,9 @@ using System.Threading.Tasks;
 using WebApplication3.Data;
 using WebApplication3.Dto;
 using WebApplication3.Models;
+using MimeKit;
+using MimeKit.Text;
+using MailKit.Net.Smtp;
 
 namespace WebApplication3.Controllers
 {
@@ -42,7 +46,7 @@ namespace WebApplication3.Controllers
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
+            SendEmail(user);//call the function and also send the values that is persent in restration page
             return Ok(user);
         }
 
@@ -58,6 +62,7 @@ namespace WebApplication3.Controllers
             string token = CreateToken(existingUser);
             return Ok(token);
         }
+
         private string CreateToken(User user)
         {
             // List<Claim> claims = new List<Claim>
@@ -81,5 +86,25 @@ namespace WebApplication3.Controllers
 
             return jwt;
         }
+
+        [HttpPost]
+        private IActionResult SendEmail(User user)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));//from section
+            email.To.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));//want to send email address of that person
+            email.Subject="Test mail ";//subject of mail
+            email.Body=new TextPart(TextFormat.Html){Text=$"Hi Admin,{user.Username} want to register in our web site please check on web site and mail address is {user.Email}"};//text of mail
+            
+            //now we want to make a connection with our stmpclient using mailKit
+            using var smtp = new MailKit.Net.Smtp.SmtpClient();
+            smtp.Connect("smtp.office365.com",587,MailKit.Security.SecureSocketOptions.StartTls);
+            smtp.Authenticate("navjotsandhu910@outlook.com","tes");//user name ,password
+            smtp.Send(email);//send mail by passing our mail variable
+            smtp.Disconnect(true);//now disconnect to server
+            return Ok();
+
+        }
+
     }
 }
