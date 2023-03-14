@@ -14,5 +14,12 @@ namespace WebApplication3.Models
 
         [Required]
         public string Email { get; set; }
+
+        [Required]
+         public string status { get; set; } = "Pending";
+
+         [Required]
+         public string Role { get; set; } = "User";
+
     }
 }
