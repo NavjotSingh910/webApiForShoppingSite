@@ -18,7 +18,7 @@ using MimeKit.Text;
 using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using WebApplication3.Helper;//for access the MailHelper
+using WebApplication3.Helper;// Include MailHelper
 namespace WebApplication3.Controllers
 {
     [Route("api/[controller]")]
@@ -28,17 +28,20 @@ namespace WebApplication3.Controllers
         private readonly UserContext _context;
         private readonly IConfiguration _configuration;
 
-        private readonly MailHelper _helper;
+        private readonly MailHelper _helper;// Create instance of MailHelper
 
         public UserController(UserContext context, IConfiguration configuration, MailHelper helper)
         {
             _context = context;
             _configuration = configuration;
-            _helper = helper;
+            _helper = helper;// Assign MailHelper instance to _helper variable
         }
+
+        // Register a new user
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] User user)
         {
+            // Check if username or email already exists
             if (_context.Users.Any(u => u.Username == user.Username))
             {
                 return BadRequest("Username already exists");
@@ -48,26 +51,36 @@ namespace WebApplication3.Controllers
             {
                 return BadRequest("Email already exists");
             }
+
+            // Add user to database
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
+            // Send email to admin about new registration
             await SendEmailToAdmin(user);
             return Ok(user);
         }
 
+        // Login an existing user
         [HttpPost("login")]
         public IActionResult Login([FromBody] UserLoginDTO user)
         {
+            // Check if user with given username and password exists
+
             var existingUser = _context.Users.SingleOrDefault(u => u.Username == user.Username && u.Password == user.Password);
 
             if (existingUser == null)
             {
                 return BadRequest("Invalid username or password");
             }
+
             else if (existingUser.status == "Active")
             {
+                // Create token for authenticated user
                 string token = CreateToken(existingUser);
                 return Ok(token);
             }
+
             else if (existingUser.status == "Pending")
             {
                 return BadRequest("Registertion Request Pending Please Wait.");
@@ -75,10 +88,11 @@ namespace WebApplication3.Controllers
             return BadRequest("Your Blocked");
         }
 
+        // Helper function to create a JWT token for authenticated users
         private string CreateToken(User user)
         {
             List<Claim> claims;
-
+            // Create claims for admin or normal user
             if (user.Role == "Admin")
             {
                 claims = new()
@@ -96,11 +110,13 @@ namespace WebApplication3.Controllers
                 };
             }
 
+            // Set token key and signing credentials
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value));
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
+            // Create JWT token
             var token = new JwtSecurityToken(
                 claims: claims,
                 expires: DateTime.Now.AddDays(1),
@@ -111,41 +127,50 @@ namespace WebApplication3.Controllers
             return jwt;
         }
 
+        // This API endpoint is used to handle the request when a user forgets their password
         [HttpPost("ForgetPassword")]
         private async Task<IActionResult> ForgetPassword([FromBody] ForgetPassword user)
         {
+            // Check if a user with the provided username and email exists in the database
             var existUser = await _context.Users.Where(u => u.Username == user.Username && u.Email == user.Email).FirstOrDefaultAsync();
-
+            // If user does not exist, return a NotFound response
             if (existUser == null)
             {
                 return NotFound();
             }
 
+            // Send the user's password via email
             await ForgetPasswordEmail(existUser);
             return Ok(existUser);
         }
 
-
+        // Helper method to send the user's password via email
         private async Task<IActionResult> ForgetPasswordEmail(User user)
         {
+            // Retrieve the password of the user
             string password = user.Password;
 
+            // Create a new email message and set its details
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
             email.To.Add(MailboxAddress.Parse(user.Email));
             email.Subject = "Password of Your Account.";
             email.Body = new TextPart(TextFormat.Html) { Text = $"This is Your password: <h1>{password}</h1> and mail is this go to site https://localhost:7207/ and enjoy shopping." };
 
+            // Send the email using the helper method
             string result = _helper.Send(email);
-
+            // If email is sent successfully, return an OK response
             if (result == "Done")
             {
                 return Ok();
             }
+            // If email is not sent successfully, return a NotFound response
 
             return NotFound();
         }
 
+
+        // API endpoint to retrieve all users in the database
         [HttpGet("GetUsers")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
@@ -153,7 +178,7 @@ namespace WebApplication3.Controllers
             return Users;
         }
 
-
+        // API endpoint to retrieve all users with a specific status in the database
         [HttpGet("GetUsersByStatus")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsersByStatus(string status)
         {
@@ -161,32 +186,38 @@ namespace WebApplication3.Controllers
             return Users;
         }
 
-
+        // API endpoint to edit the status of a user by an admin
         [HttpPost("EditStatus")]
         public async Task<IActionResult> EditStatusOfUserByAdmin(int id, string status)
         {
+            // Find the user with the provided ID
             var user = await _context.Users.FindAsync(id);
-
+            // If user does not exist, return a NotFound response
             if (user == null)
             {
                 return NotFound();
             }
 
+            // Update the user's status and save changes to the database
             user.status = status;
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
+            // Return an OK response
             return Ok();
         }
 
+        // Helper method to send an email to the admin notifying them of a new user registration
         private async Task<IActionResult> SendEmailToAdmin(User user)
         {
+            // Create a new email message and set its details
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
             email.To.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
             email.Subject = "Test mail ";
             email.Body = new TextPart(TextFormat.Html) { Text = $"Hi Admin,{user.Username} want to register in our web site please check on web site and mail address is {user.Email} go to site https://localhost:7207/" };
-            string result = _helper.Send(email);//here i  call mail helper for send the Mail
 
+            // Send the email using the helper method
+            string result = _helper.Send(email);
             if (result == "Done")
             {
                 return Ok();
