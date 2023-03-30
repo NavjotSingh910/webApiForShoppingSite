@@ -1,4 +1,5 @@
-﻿using System.Net.Mail;
+﻿
+using System.Net.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +18,7 @@ using MimeKit.Text;
 using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using WebApplication3.Helper;//for access the MailHelper
 namespace WebApplication3.Controllers
 {
     [Route("api/[controller]")]
@@ -26,12 +28,14 @@ namespace WebApplication3.Controllers
         private readonly UserContext _context;
         private readonly IConfiguration _configuration;
 
-        public UserController(UserContext context, IConfiguration configuration)
+        private readonly MailHelper _helper;
+
+        public UserController(UserContext context, IConfiguration configuration, MailHelper helper)
         {
             _context = context;
             _configuration = configuration;
+            _helper = helper;
         }
-
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] User user)
         {
@@ -46,7 +50,7 @@ namespace WebApplication3.Controllers
             }
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            SendEmail(user);//call the function and also send the values that is persent in restration page
+            await SendEmailToAdmin(user);
             return Ok(user);
         }
 
@@ -54,32 +58,43 @@ namespace WebApplication3.Controllers
         public IActionResult Login([FromBody] UserLoginDTO user)
         {
             var existingUser = _context.Users.SingleOrDefault(u => u.Username == user.Username && u.Password == user.Password);
+
             if (existingUser == null)
             {
                 return BadRequest("Invalid username or password");
             }
-            // Generate JWT token
-            string token = CreateToken(existingUser);
-            return Ok(token);
+            else if (existingUser.status == "Active")
+            {
+                string token = CreateToken(existingUser);
+                return Ok(token);
+            }
+            else if (existingUser.status == "Pending")
+            {
+                return BadRequest("Registertion Request Pending Please Wait.");
+            }
+            return BadRequest("Your Blocked");
         }
 
         private string CreateToken(User user)
         {
             List<Claim> claims;
-           if(user.Role=="Admin"){
-            claims = new()
+
+            if (user.Role == "Admin")
             {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, "Admin")
-            };
-           }
-           else{
-            claims = new()
+                claims = new()
+                {
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, "Admin")
+                };
+            }
+            else
             {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, "User")
-            };
-           }
+                claims = new()
+                {
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, "User")
+                };
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value));
@@ -96,12 +111,41 @@ namespace WebApplication3.Controllers
             return jwt;
         }
 
-         [HttpGet("GetUsersByStatus")]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers(string status)
+        [HttpPost("ForgetPassword")]
+        private async Task<IActionResult> ForgetPassword([FromBody] ForgetPassword user)
         {
-            var Users = await _context.Users.Where(u => u.status == status).ToListAsync();
-            return Users;
+            var existUser = await _context.Users.Where(u => u.Username == user.Username && u.Email == user.Email).FirstOrDefaultAsync();
+
+            if (existUser == null)
+            {
+                return NotFound();
+            }
+
+            await ForgetPasswordEmail(existUser);
+            return Ok(existUser);
         }
+
+
+        private async Task<IActionResult> ForgetPasswordEmail(User user)
+        {
+            string password = user.Password;
+
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
+            email.To.Add(MailboxAddress.Parse(user.Email));
+            email.Subject = "Password of Your Account.";
+            email.Body = new TextPart(TextFormat.Html) { Text = $"This is Your password: <h1>{password}</h1> and mail is this go to site https://localhost:7207/ and enjoy shopping." };
+
+            string result = _helper.Send(email);
+
+            if (result == "Done")
+            {
+                return Ok();
+            }
+
+            return NotFound();
+        }
+
         [HttpGet("GetUsers")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
@@ -110,41 +154,45 @@ namespace WebApplication3.Controllers
         }
 
 
+        [HttpGet("GetUsersByStatus")]
+        public async Task<ActionResult<IEnumerable<User>>> GetUsersByStatus(string status)
+        {
+            var Users = await _context.Users.Where(u => u.status == status).ToListAsync();
+            return Users;
+        }
+
 
         [HttpPost("EditStatus")]
-        public async Task<IActionResult> EditStatus(int id , string status){
-            var user = _context.Users.Find(id);
-            if (user == null){
+        public async Task<IActionResult> EditStatusOfUserByAdmin(int id, string status)
+        {
+            var user = await _context.Users.FindAsync(id);
+
+            if (user == null)
+            {
                 return NotFound();
             }
-             user.status = status;
-             _context.Update(user);
-             _context.SaveChanges();
+
+            user.status = status;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
             return Ok();
         }
 
-
-
-
-        [HttpPost]
-        private IActionResult SendEmail(User user)
+        private async Task<IActionResult> SendEmailToAdmin(User user)
         {
             var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));//from section
-            email.To.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));//want to send email address of that person
-            email.Subject="Test mail ";//subject of mail
-            email.Body=new TextPart(TextFormat.Html){Text=$"Hi Admin,{user.Username} want to register in our web site please check on web site and mail address is {user.Email} go to site https://localhost:7207/"};//text of mail
+            email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
+            email.To.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
+            email.Subject = "Test mail ";
+            email.Body = new TextPart(TextFormat.Html) { Text = $"Hi Admin,{user.Username} want to register in our web site please check on web site and mail address is {user.Email} go to site https://localhost:7207/" };
+            string result = _helper.Send(email);//here i  call mail helper for send the Mail
 
-            //now we want to make a connection with our stmpclient using mailKit
-            using var smtp = new MailKit.Net.Smtp.SmtpClient();
-            smtp.Connect("smtp.office365.com",587,MailKit.Security.SecureSocketOptions.StartTls);
-            smtp.Authenticate("navjotsandhu910@outlook.com","ywkjiurmcgojqyjd");//user name ,password
-            smtp.Send(email);//send mail by passing our mail variable
-            smtp.Disconnect(true);//now disconnect to server
-            return Ok();
+            if (result == "Done")
+            {
+                return Ok();
+            }
 
+            return NotFound();
         }
-
-
     }
 }

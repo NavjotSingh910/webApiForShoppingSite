@@ -17,13 +17,6 @@ namespace WebApplication3.Controllers
             _context = context;
         }
 
-        [HttpGet("ItemsGet")]
-        public async Task<ActionResult<IEnumerable<Items>>> GetProducts()
-        {
-            var products = await _context.Items.ToListAsync();
-            return products;
-        }
-
         [HttpPost("ItemAdd")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Items([FromBody] Items items)
@@ -34,6 +27,49 @@ namespace WebApplication3.Controllers
             return Ok(items);
         }
 
+        [HttpGet("ItemsGet")]
+        public async Task<ActionResult<IEnumerable<Items>>> GetProducts()
+        {
+            var products = await _context.Items.ToListAsync();
+            return products;
+        }
+
+        [HttpGet("Search")]
+        public async Task<ActionResult<IEnumerable<Items>>> Search([FromQuery] string keyword)
+        {
+            if (string.IsNullOrEmpty(keyword))
+            {
+                // Return all items if no search keyword is provided
+                return await _context.Items.ToListAsync();
+            }
+            else
+            {
+                // Search for items that contain the keyword in the name or description
+                var products = await _context.Items.Where(p =>
+                    p.ItemName.Contains(keyword))
+                    .ToListAsync();
+                return products;
+            }
+        }
+
+        [HttpGet("load")]
+        public IActionResult GetItems(int startIndex, int count)
+        {
+            var items = LoadItemsFromDataSource(startIndex, count);
+            return Json(items);
+        }
+
+        private List<Items> LoadItemsFromDataSource(int startIndex, int count)
+        {
+            var items = _context.Items
+                .OrderBy(x => x.Id)
+                .Skip(startIndex)//here skip the items 
+                .Take(count)//take the items from after skiping indexs
+                .ToList();
+
+            return items;
+        }
+        
         [BindProperty]
         public Items Item { get; set; }
         [HttpGet("ItemById")]
@@ -75,50 +111,6 @@ namespace WebApplication3.Controllers
             }
             var products = await _context.Items.ToListAsync();
             return Ok(products);
-        }
-
-        [HttpGet("Search")]
-        public async Task<ActionResult<IEnumerable<Items>>> Search([FromQuery] string keyword)
-        {
-            if (string.IsNullOrEmpty(keyword))
-            {
-                // Return all items if no search keyword is provided
-                return await _context.Items.ToListAsync();
-            }
-            else
-            {
-                // Search for items that contain the keyword in the name or description
-                var products = await _context.Items.Where(p =>
-                    p.ItemName.Contains(keyword))
-                    .ToListAsync();
-                return products;
-            }
-        }
-
-        [HttpGet("load")]
-        public IActionResult GetItems(int startIndex, int count)
-        {
-            // startIndex is the index of the first item to return
-            // count is the number of items to return
-
-            // Load items from database or some other data source
-            var items = LoadItemsFromDataSource(startIndex, count);
-
-            // Return the items as JSON data
-            return Json(items);
-        }
-
-        private List<Items> LoadItemsFromDataSource(int startIndex, int count)
-        {
-
-            var items = _context.Items
-                .OrderBy(x => x.Id)
-                .Skip(startIndex)//here skip the items 
-                .Take(count)//take the items from after skiping indexs
-                .ToList();
-
-            return items;
-
         }
 
     }
