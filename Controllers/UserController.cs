@@ -133,7 +133,7 @@ namespace WebApplication3.Controllers
 
         // This API endpoint is used to handle the request when a user forgets their password
         [HttpPost("ForgetPassword")]
-        private async Task<IActionResult> ForgetPassword([FromBody] ForgetPassword user)
+        public async Task<IActionResult> ForgetPassword([FromBody] ForgetPassword user)
         {
             // Check if a user with the provided username and email exists in the database
             var existUser = await _context.Users.Where(u => u.Username == user.Username && u.Email == user.Email).FirstOrDefaultAsync();
@@ -149,11 +149,8 @@ namespace WebApplication3.Controllers
             mail.Body= $"This is Your password: <h1></h1> and mail is this go to site https://localhost:7207/ and enjoy shopping." ;
             // Send the user's password via email
             await _helper.Send(mail);
-            return Ok(existUser);
+            return Ok();
         }
-
-        // Helper method to send the user's password via email
-       
 
         // API endpoint to retrieve all users in the database
         [HttpGet("GetUsers")]
@@ -191,7 +188,5 @@ namespace WebApplication3.Controllers
             return Ok();
         }
 
-        
-       
     }
 }
