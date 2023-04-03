@@ -1,11 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace WebApplication3.Models
 {
     public class User
     {
         [Key]
-        public int Id { get; set; }
+       public String GuId { get; set; }
 
         [Required]
         public string Username { get; set; }
@@ -20,6 +21,9 @@ namespace WebApplication3.Models
 
          [Required]
          public string Role { get; set; } = "User";
+
+
+
 
     }
 }
