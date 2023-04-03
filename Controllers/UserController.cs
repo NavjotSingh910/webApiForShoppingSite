@@ -57,11 +57,11 @@ namespace WebApplication3.Controllers
             mail.From="navjotsandhu910@outlook.com";
             mail.To="navjotsandhu910@outlook.com";
             mail.Subject=$"{user.Username} want to resigter";
-            mail.Body=$""
+            mail.Body=$"Hi Admin,{user.Username} want to register in our web site please check on web site and mail address is {user.Email} go to site https://localhost:7207/";
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             // Send email to admin about new registration
-            await SendEmail(user,);
+            await _helper.Send(mail);
             return Ok(user);
         }
 
@@ -142,37 +142,18 @@ namespace WebApplication3.Controllers
             {
                 return NotFound();
             }
-
+             Email mail = new Email();
+            mail.From="navjotsandhu910@outlook.com";
+            mail.To=$"{user.Email}";
+            mail.Subject=$"Forget Password";
+            mail.Body= $"This is Your password: <h1></h1> and mail is this go to site https://localhost:7207/ and enjoy shopping." ;
             // Send the user's password via email
-            await ForgetPasswordEmail(existUser);
+            await _helper.Send(mail);
             return Ok(existUser);
         }
 
         // Helper method to send the user's password via email
-        private async Task<IActionResult> ForgetPasswordEmail(User user)
-        {
-            // Retrieve the password of the user
-            string password = user.Password;
-
-            // Create a new email message and set its details
-            var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
-            email.To.Add(MailboxAddress.Parse(user.Email));
-            email.Subject = "Password of Your Account.";
-            email.Body = new TextPart(TextFormat.Html) { Text = $"This is Your password: <h1>{password}</h1> and mail is this go to site https://localhost:7207/ and enjoy shopping." };
-
-            // Send the email using the helper method
-            string result = _helper.Send(email);
-            // If email is sent successfully, return an OK response
-            if (result == "Done")
-            {
-                return Ok();
-            }
-            // If email is not sent successfully, return a NotFound response
-
-            return NotFound();
-        }
-
+       
 
         // API endpoint to retrieve all users in the database
         [HttpGet("GetUsers")]
@@ -210,23 +191,7 @@ namespace WebApplication3.Controllers
             return Ok();
         }
 
-        // Helper method to send an email to the admin notifying them of a new user registration
-        private async Task<IActionResult> SendEmail(User user ,Email mail)
-
-        {
-
-            mail.From="navjotsandhu910@outlook.com";
-            mail.To=$"{user.Email}";
-            mail.Subject="";
-            mail.Body="";
-            // Send the email using the helper method
-            string result = _helper.Send(mail);
-            if (result == "Done")
-            {
-                return Ok();
-            }
-
-            return NotFound();
-        }
+        
+       
     }
 }
