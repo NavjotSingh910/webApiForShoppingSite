@@ -53,11 +53,15 @@ namespace WebApplication3.Controllers
             }
 
             // Add user to database
+            Email mail = new Email();
+            mail.From="navjotsandhu910@outlook.com";
+            mail.To="navjotsandhu910@outlook.com";
+            mail.Subject=$"{user.Username} want to resigter";
+            mail.Body=$""
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
             // Send email to admin about new registration
-            await SendEmailToAdmin(user);
+            await SendEmail(user,);
             return Ok(user);
         }
 
@@ -207,17 +211,16 @@ namespace WebApplication3.Controllers
         }
 
         // Helper method to send an email to the admin notifying them of a new user registration
-        private async Task<IActionResult> SendEmailToAdmin(User user)
-        {
-            // Create a new email message and set its details
-            var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
-            email.To.Add(MailboxAddress.Parse("navjotsandhu910@outlook.com"));
-            email.Subject = "Test mail ";
-            email.Body = new TextPart(TextFormat.Html) { Text = $"Hi Admin,{user.Username} want to register in our web site please check on web site and mail address is {user.Email} go to site https://localhost:7207/" };
+        private async Task<IActionResult> SendEmail(User user ,Email mail)
 
+        {
+
+            mail.From="navjotsandhu910@outlook.com";
+            mail.To=$"{user.Email}";
+            mail.Subject="";
+            mail.Body="";
             // Send the email using the helper method
-            string result = _helper.Send(email);
+            string result = _helper.Send(mail);
             if (result == "Done")
             {
                 return Ok();
