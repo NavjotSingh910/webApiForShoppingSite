@@ -78,14 +78,14 @@ namespace WebApplication3.Controllers
                 return BadRequest("Invalid username or password");
             }
 
-            else if (existingUser.status == "Active")
+            else if (existingUser.Status == "Active")
             {
                 // Create token for authenticated user
                 string token = CreateToken(existingUser);
                 return Ok(token);
             }
 
-            else if (existingUser.status == "Pending")
+            else if (existingUser.Status == "Pending")
             {
                 return BadRequest("Registertion Request Pending Please Wait.");
             }
@@ -164,13 +164,13 @@ namespace WebApplication3.Controllers
         [HttpGet("GetUsersByStatus")]
         public async Task<ActionResult<IEnumerable<User>>> GetUsersByStatus(string status)
         {
-            var Users = await _context.Users.Where(u => u.status == status).ToListAsync();
+            var Users = await _context.Users.Where(u => u.Status == status).ToListAsync();
             return Users;
         }
 
         // API endpoint to edit the status of a user by an admin
         [HttpPost("EditStatus")]
-        public async Task<IActionResult> EditStatusOfUserByAdmin(int id, string status)
+        public async Task<IActionResult> EditStatusOfUserByAdmin(String id, string status)
         {
             // Find the user with the provided ID
             var user = await _context.Users.FindAsync(id);
@@ -181,7 +181,7 @@ namespace WebApplication3.Controllers
             }
 
             // Update the user's status and save changes to the database
-            user.status = status;
+            user.Status = status;
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
             // Return an OK response
